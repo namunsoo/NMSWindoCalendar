@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "NMS (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "NMS (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}
