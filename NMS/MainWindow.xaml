@@ -11,36 +11,12 @@
     <Window.SystemBackdrop>
         <winuiex:TransparentTintBackdrop/>
     </Window.SystemBackdrop>
-    <Grid Name="Main" Background="DimGray" BorderBrush="Red" BorderThickness="1">
-        <GridView
-            x:Name="StyledGrid" ItemsSource="{Binding Source={StaticResource cvsProjects}}"
-            ItemTemplate="{StaticResource ImageOverlayTemplate}">
-
-            <GridView.ItemContainerStyle>
-                <Style TargetType="GridViewItem" BasedOn="{StaticResource DefaultGridViewItemStyle}">
-                    <Setter Property="Margin" Value="5, 5, 5, 5"/>
-                </Style>
-            </GridView.ItemContainerStyle>
-
-            <!-- An extra property also needs to be added to the GridView's ItemsWrapGrid.
-            The following sets the maximum # of items to show before wrapping.-->
-            <GridView.ItemsPanel>
-                <ItemsPanelTemplate>
-                    <ItemsWrapGrid x:Name="MaxItemsWrapGrid"
-                                   MaximumRowsOrColumns="7"
-                                   Orientation="Horizontal"/>
-                </ItemsPanelTemplate>
-            </GridView.ItemsPanel>
-            <DataTemplate x:Name="ImageOverlayTemplate">
-                <StackPanel Margin="20">
-                    <TextBlock Text="{Binding Name}" FontWeight="Bold" 
-                                   Style="{StaticResource BaseTextBlockStyle}"/>
-                    <TextBlock Text="{Binding DueDate}" TextWrapping="NoWrap" 
-                                   Style="{StaticResource BodyTextBlockStyle}" />
-                    <CheckBox Content="Complete" IsChecked="{Binding Complete}" 
-                                  IsEnabled="False"/>
-                </StackPanel>
-            </DataTemplate>
-        </GridView>
-    </Grid>
+    <StackPanel Name="Main" >
+        <Grid Height="50">
+            <Button Background="Transparent" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="5" Click="BtnClose_Click">
+                <FontIcon Glyph="&#xE711;" />
+            </Button>
+        </Grid>
+        <Frame x:Name="PageFrame"/>
+    </StackPanel>
 </Window>

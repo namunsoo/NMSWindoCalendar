@@ -45,6 +45,6 @@ namespace NMS
 			m_window.Activate();
 		}
 
-		private Window m_window;
+		public static Window m_window { get; private set; }
 	}
 }

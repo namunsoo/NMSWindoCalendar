@@ -22,6 +22,7 @@ using WinUIEx;
 using NMS.Helpers;
 using System.Threading.Tasks;
 using System.Collections.ObjectModel;
+using NMS.Page;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -38,14 +39,38 @@ namespace NMS
 		public MainWindow()
 		{
 			this.InitializeComponent();
-			//var manager = WinUIEx.WindowManager.Get(this);
-			//manager.MinWidth = 400;
-			//manager.MinHeight = 400;
+			var manager = WinUIEx.WindowManager.Get(this);
+			manager.MinWidth = 800;
+			manager.MinHeight = 750;
+			manager.Width = 800;
+			manager.Height = 750;
+			////manager.IsResizable = false;
+			//manager.IsTitleBarVisible = true;
+			//manager.IsMaximizable = false;
+			//manager.IsMinimizable = false;
+			//manager.IsTitleBarVisible=false;
 
-			m_AppWindow = GetAppWindowForCurrentWindow();
+			IntPtr hWnd = WindowNative.GetWindowHandle(this);
+			WindowId wndId = Win32Interop.GetWindowIdFromWindow(hWnd);
+			m_AppWindow = AppWindow.GetFromWindowId(wndId);
 			//var titleBar = m_AppWindow.TitleBar;
 			//// Hide system title bar.
-			//// titleBar.ExtendsContentIntoTitleBar = true;
+			//titleBar.ExtendsContentIntoTitleBar = true;
+			if (m_AppWindow is not null)
+			{
+				Microsoft.UI.Windowing.DisplayArea displayArea = Microsoft.UI.Windowing.DisplayArea.GetFromWindowId(wndId, Microsoft.UI.Windowing.DisplayAreaFallback.Nearest);
+				if (displayArea is not null)
+				{
+					var CenteredPosition = m_AppWindow.Position;
+					CenteredPosition.X = ((displayArea.WorkArea.Width - m_AppWindow.Size.Width) / 2);
+					//CenteredPosition.Y = ((displayArea.WorkArea.Height - m_AppWindow.Size.Height) / 2);
+					CenteredPosition.Y = 0;
+					m_AppWindow.Move(CenteredPosition);
+				}
+			}
+			//m_AppWindow.Title = "Title";
+			//m_AppWindow.TitleBar.IconShowOptions = IconShowOptions.HideIconAndSystemMenu;
+			//m_AppWindow.TitleBar.ExtendsContentIntoTitleBar = true;
 
 			var presenter = m_AppWindow.Presenter as OverlappedPresenter;
 			presenter.IsMaximizable = false;
@@ -72,62 +97,13 @@ namespace NMS
 					Helpers.Window.SetAcrylic(false, false);
 					Main.Background = new SolidColorBrush(Colors.Transparent);
 					Helpers.Window.SetBlur(true, false);
-					PopulateProjects();
 				}));
+			PageFrame.Navigate(typeof(CalendarMonth));
 		}
 
-		private AppWindow GetAppWindowForCurrentWindow()
+		private void BtnClose_Click(object sender, RoutedEventArgs e)
 		{
-			IntPtr hWnd = WindowNative.GetWindowHandle(this);
-			WindowId wndId = Win32Interop.GetWindowIdFromWindow(hWnd);
-			return AppWindow.GetFromWindowId(wndId);
+			App.m_window.Close();
 		}
-
-		private void PopulateProjects()
-		{
-			DateTime startDate = DateTime.Now;
-			List<Project> Projects = new List<Project>();
-
-			Project newProject = new Project();
-			newProject.Name = "Project 1";
-			newProject.Activities.Add(new Activity()
-			{ Name = "Activity 1", Complete = true, DueDate = startDate.AddDays(4) });
-			newProject.Activities.Add(new Activity()
-			{ Name = "Activity 2", Complete = true, DueDate = startDate.AddDays(5) });
-			Projects.Add(newProject);
-
-			newProject = new Project();
-			newProject.Name = "Project 2";
-			newProject.Activities.Add(new Activity()
-			{ Name = "Activity A", Complete = true, DueDate = startDate.AddDays(2) });
-			newProject.Activities.Add(new Activity()
-			{ Name = "Activity B", Complete = false, DueDate = startDate.AddDays(3) });
-			Projects.Add(newProject);
-
-			newProject = new Project();
-			newProject.Name = "Project 3";
-			Projects.Add(newProject);
-
-			StyledGrid.ItemsSource = Projects;
-		}
-	}
-
-	public class Project
-	{
-		public Project()
-		{
-			Activities = new ObservableCollection<Activity>();
-		}
-
-		public string Name { get; set; }
-		public ObservableCollection<Activity> Activities { get; private set; }
-	}
-
-	public class Activity
-	{
-		public string Name { get; set; }
-		public DateTime DueDate { get; set; }
-		public bool Complete { get; set; }
-		public string Project { get; set; }
 	}
 }

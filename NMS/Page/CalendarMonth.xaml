@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="NMS.Page.CalendarMonth"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:NMS.Page"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+    <Page.Resources>
+        <CollectionViewSource x:Name="MonthData" IsSourceGrouped="True" 
+                              ItemsPath="Connection"/>
+    </Page.Resources>
+
+    <Grid Height="700">
+        <GridView x:Name="gridView" SizeChanged="onGridViewSizeChanged" ItemClick="GridViewItem_Click" ItemsSource="{Binding Source={StaticResource MonthData}}">
+            <GridView.Header>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Border Grid.Column="0" BorderBrush="{x:Bind headerBorderBrush}" BorderThickness="{x:Bind headerBorderThickness}" Height="30">
+                        <TextBlock Text="일" TextAlignment="Center" Foreground="#DB4455" FontSize="20" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <Border Grid.Column="1" BorderBrush="{x:Bind headerBorderBrush}" BorderThickness="{x:Bind headerBorderThickness}" Height="30">
+                        <TextBlock Text="월" TextAlignment="Center" FontSize="20" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <Border Grid.Column="2" BorderBrush="{x:Bind headerBorderBrush}" BorderThickness="{x:Bind headerBorderThickness}" Height="30">
+                        <TextBlock Text="화" TextAlignment="Center" FontSize="20" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <Border Grid.Column="3" BorderBrush="{x:Bind headerBorderBrush}" BorderThickness="{x:Bind headerBorderThickness}" Height="30">
+                        <TextBlock Text="수" TextAlignment="Center" FontSize="20" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <Border Grid.Column="4" BorderBrush="{x:Bind headerBorderBrush}" BorderThickness="{x:Bind headerBorderThickness}" Height="30">
+                        <TextBlock Text="목" TextAlignment="Center" FontSize="20" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <Border Grid.Column="5" BorderBrush="{x:Bind headerBorderBrush}" BorderThickness="{x:Bind headerBorderThickness}" Height="30">
+                        <TextBlock Text="금" TextAlignment="Center" FontSize="20" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <Border Grid.Column="6" BorderBrush="{x:Bind headerBorderBrush}" BorderThickness="{x:Bind headerBorderThickness}" Height="30">
+                        <TextBlock Text="토" TextAlignment="Center" Foreground="#A4C4EE" FontSize="20" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                </Grid>
+            </GridView.Header>
+            <GridView.ItemTemplate>
+                <DataTemplate>
+                    <Grid BorderBrush="#1A000000" BorderThickness="0,0,1,1" Margin="0,2,1,0" PointerEntered="GridViewItem_PointerEntered" PointerExited="GridViewItem_PointerExited">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Text="{Binding Day}" Foreground="{Binding NumberColor}" FontWeight="Bold" 
+                                   Style="{StaticResource BaseTextBlockStyle}"/>
+                        <TextBlock Grid.Row="1" Text="{Binding Memo}" Foreground="{Binding FontColor}" TextWrapping="NoWrap" 
+                                   Style="{StaticResource BodyTextBlockStyle}" />
+
+                    </Grid>
+                </DataTemplate>
+            </GridView.ItemTemplate>
+            <GridView.ItemContainerStyle>
+                <Style TargetType="GridViewItem">
+                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                    <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+                    <Setter Property="Margin" Value="0"/>
+                </Style>
+            </GridView.ItemContainerStyle>
+            <GridView.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <ItemsWrapGrid MaximumRowsOrColumns="7" Orientation="Horizontal"/>
+                </ItemsPanelTemplate>
+            </GridView.ItemsPanel>
+        </GridView>
+    </Grid>
+</Page>
