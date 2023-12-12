@@ -15,6 +15,7 @@ using Microsoft.UI.Xaml.Navigation;
 using System.Diagnostics;
 using System.Collections.ObjectModel;
 using NMS.Helpers;
+using static System.Net.Mime.MediaTypeNames;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -26,15 +27,22 @@ namespace NMS.Page
     /// </summary>
     public sealed partial class CalendarMonth
     {
-		public string headerBorderThickness { get; set; } = "0,0,0,2";
-		public Brush headerBorderBrush { get; set; } = new SolidColorBrush(Common.GetColor("#1A000000"));
+		private string headerBorderThickness { get; set; } = "0,0,0,2";
+		private Brush headerBorderBrush { get; set; } = new SolidColorBrush(Common.GetColor("#1A000000"));
+		private Grid _grid;
+		private GridViewItem _clickedItem;
 		public CalendarMonth()
         {
             this.InitializeComponent();
 
+			// 데이터 입력
 			DataBinding();
+
+			// GridView 초기값 삭제용
+			CalendarGridView.SelectedIndex = -1;
 		}
 
+		#region [| 데이터 입력 |]
 		private void DataBinding()
 		{
 			List<CalendarDay> targetMonth = CalendarCore.GetMonth(DateTime.Today);
@@ -97,29 +105,55 @@ namespace NMS.Page
 			#endregion
 			MonthData.Source = items;
 		}
+		#endregion
 
-		private void onGridViewSizeChanged(object sender, SizeChangedEventArgs e)
+		#region [| Grid View 사이즈 변경 이벤트 |]
+		private void OnGridViewSizeChanged(object sender, SizeChangedEventArgs e)
 		{
-			((ItemsWrapGrid)gridView.ItemsPanelRoot).ItemWidth = e.NewSize.Width / 7;
-			((ItemsWrapGrid)gridView.ItemsPanelRoot).ItemHeight = (e.NewSize.Height - 40) / 6;
+			((ItemsWrapGrid)CalendarGridView.ItemsPanelRoot).ItemWidth = e.NewSize.Width / 7;
+			((ItemsWrapGrid)CalendarGridView.ItemsPanelRoot).ItemHeight = (e.NewSize.Height - 40) / 6;
 		}
+		#endregion
 
-		private void GridViewItem_Click(object sender, ItemClickEventArgs e)
+		#region [| Grid View 선택 이벤트 |]
+		private Grid beforeSelectedGrid = null;
+		private void GridView_SelectionChanged(object sender, SelectionChangedEventArgs e)
 		{
-
+			GridView gridView = sender as GridView;
+			_clickedItem = (GridViewItem)CalendarGridView.ContainerFromItem(gridView.SelectedItem);
+            if (beforeSelectedGrid != null)
+            {
+				TextBox beforeTextBox = beforeSelectedGrid.Children.OfType<TextBox>().LastOrDefault();
+				beforeTextBox.Visibility = Visibility.Collapsed;
+			}
+            if (_clickedItem != null)
+			{
+				Grid grid = _clickedItem.ContentTemplateRoot as Grid;
+				TextBox textBox = grid.Children.OfType<TextBox>().LastOrDefault();
+				textBox.Visibility = Visibility.Visible;
+				textBox.Focus(FocusState.Programmatic);
+				beforeSelectedGrid = grid;
+			}
 		}
+		#endregion
 
+		#region [| 날짜 mouse over 효과 |]
 		private void GridViewItem_PointerEntered(object sender, PointerRoutedEventArgs e)
 		{
-			Grid Item = sender as Grid;
-			Item.Background = new SolidColorBrush(Common.GetColor("#4DF3F3F3"));
+			_grid = sender as Grid;
+			Button button = _grid.Children.OfType<Button>().FirstOrDefault();
+			button.Visibility = Visibility.Visible;
+			_grid.Background = new SolidColorBrush(Common.GetColor("#4DF3F3F3"));
 		}
 
 		private void GridViewItem_PointerExited(object sender, PointerRoutedEventArgs e)
 		{
-			Grid Item = sender as Grid;
-			Item.Background = new SolidColorBrush(Common.GetColor("#00000000"));
+			_grid = sender as Grid;
+			Button button = _grid.Children.OfType<Button>().FirstOrDefault();
+			button.Visibility = Visibility.Collapsed;
+			_grid.Background = new SolidColorBrush(Common.GetColor("#00000000"));
 		}
+		#endregion
 
 		private SolidColorBrush GetColorText(int count)
 		{

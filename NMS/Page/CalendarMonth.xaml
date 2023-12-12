@@ -13,7 +13,7 @@
     </Page.Resources>
 
     <Grid Height="700">
-        <GridView x:Name="gridView" SizeChanged="onGridViewSizeChanged" ItemClick="GridViewItem_Click" ItemsSource="{Binding Source={StaticResource MonthData}}">
+        <GridView x:Name="CalendarGridView" SizeChanged="OnGridViewSizeChanged" SelectionChanged="GridView_SelectionChanged" ItemsSource="{Binding Source={StaticResource MonthData}}">
             <GridView.Header>
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -50,24 +50,38 @@
             </GridView.Header>
             <GridView.ItemTemplate>
                 <DataTemplate>
-                    <Grid BorderBrush="#1A000000" BorderThickness="0,0,1,1" Margin="0,2,1,0" PointerEntered="GridViewItem_PointerEntered" PointerExited="GridViewItem_PointerExited">
+                    <Grid BorderBrush="#1A000000" BorderThickness="0,0,1,1" Margin="0,2,1,0"
+                          PointerEntered="GridViewItem_PointerEntered" PointerExited="GridViewItem_PointerExited">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" Text="{Binding Day}" Foreground="{Binding NumberColor}" FontWeight="Bold" 
-                                   Style="{StaticResource BaseTextBlockStyle}"/>
-                        <TextBlock Grid.Row="1" Text="{Binding Memo}" Foreground="{Binding FontColor}" TextWrapping="NoWrap" 
-                                   Style="{StaticResource BodyTextBlockStyle}" />
-
+                        <TextBlock  Grid.Row="0" Margin="5,0,0,0" Text="{Binding Day}" Foreground="{Binding NumberColor}" FontWeight="Bold"
+                            Style="{StaticResource BaseTextBlockStyle}"/>
+                        <TextBlock Grid.Row="1" Margin="5,0,0,0" FontSize="12" Text="{Binding Memo}" Foreground="{Binding FontColor}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
+                            ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                            ScrollViewer.VerticalScrollBarVisibility="Auto"
+                            Style="{StaticResource BodyTextBlockStyle}" />
+                        <TextBox Grid.Row="0" Grid.RowSpan="2" Visibility="Collapsed" Background="#ffffff" AcceptsReturn="True"/>
+                        <Button Grid.Row="0" Grid.RowSpan="2" Visibility="Collapsed" Width="30" Height="30" Background="Transparent" HorizontalAlignment="Right" VerticalAlignment="Top" Padding="0">
+                            <FontIcon FontSize="15" Glyph="&#xE8A7;"/>
+                        </Button>
+                        <!--<TextBlock >
+                            <Run Text="{Binding Year}"/>
+                            <Run Text=" "/>
+                            <Run Text="{Binding Month}"/>
+                            <Run Text=" "/>
+                            <Run Text="{Binding Day}"/>
+                        </TextBlock>-->
                     </Grid>
                 </DataTemplate>
             </GridView.ItemTemplate>
             <GridView.ItemContainerStyle>
                 <Style TargetType="GridViewItem">
+                    <Setter Property="IsSelected" Value="True" />
                     <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
                     <Setter Property="VerticalContentAlignment" Value="Stretch"/>
                     <Setter Property="Margin" Value="0"/>
