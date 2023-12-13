@@ -12,6 +12,18 @@ namespace NMS.Helpers
 		public int Month { get; set; }
 		public int Day { get; set; }
 		public string Memo {  get; set; }
+		public string LocalMemo {  get; set; }
+		public List<CalendarTimetableItem> Timetable { get; set; }
     }
+
+	public class CalendarTimetableItem
+	{
+		public int Year { get; set; }
+		public int Month { get; set; }
+		public int Day { get; set; }
+		public DateTime? StartTime { get; set; }
+		public DateTime? EndTime { get; set; }
+		public string Summary { get; set; }
+	}
 
 }
