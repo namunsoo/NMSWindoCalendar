@@ -225,6 +225,7 @@ namespace NMS.Helpers
 						item.Day = eventItem.Start.DateTime.Value.Day;
 						item.StartTime = eventItem.Start.DateTime;
 						item.EndTime = eventItem.End.DateTime;
+						item.Description = eventItem.Description;
 						item.Summary = eventItem.Summary;
 						myItems.Add(item);
 					}

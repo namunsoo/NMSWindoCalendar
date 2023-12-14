@@ -64,7 +64,7 @@ namespace NMS
 					var CenteredPosition = m_AppWindow.Position;
 					CenteredPosition.X = ((displayArea.WorkArea.Width - m_AppWindow.Size.Width) / 2);
 					//CenteredPosition.Y = ((displayArea.WorkArea.Height - m_AppWindow.Size.Height) / 2);
-					CenteredPosition.Y = 0;
+					CenteredPosition.Y = 20;
 					m_AppWindow.Move(CenteredPosition);
 				}
 			}
