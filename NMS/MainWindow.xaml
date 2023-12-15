@@ -13,7 +13,7 @@
     </Window.SystemBackdrop>
     <Grid Name="Main" >
         <Frame x:Name="PageFrame"/>
-        <Button Background="Transparent" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="5" Click="BtnClose_Click">
+        <Button Background="Transparent" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="5" Click="Btn_Close_Click">
             <FontIcon Glyph="&#xE711;" />
         </Button>
     </Grid>

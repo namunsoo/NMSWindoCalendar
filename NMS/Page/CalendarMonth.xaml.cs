@@ -19,6 +19,7 @@ using static System.Net.Mime.MediaTypeNames;
 using Windows.System;
 using Windows.UI.Core;
 using System.Threading.Tasks;
+using System.Collections;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -34,11 +35,11 @@ namespace NMS.Page
 		private Grid _grid;
 		private GridViewItem _clickedItem;
 		private Button _buttonDetail;
-		private List<CalendarDay> _dayList;
 		private DateTimeOffset _thisMonth = DateTimeOffset.Now;
-		private CalendarDay _tempForDetailEvent_calendarDay;
 		private CustomDay _tempForDetailEvent_customDay;
 		private Grid _tempForDetailEvent_targetGrid;
+		private List<CustomTimetableItem> _tempListViewData;
+		private List<Item> _calendarGridViewSource;
 		public CalendarMonth()
 		{
 			this.InitializeComponent();
@@ -46,31 +47,38 @@ namespace NMS.Page
 			// 데이터 입력
 			DataBinding(DateTime.Today);
 
-			// GridView 초기값 삭제용
-			//CalendarGridView.SelectedIndex = -1;
+			// gridview 초기값 삭제용
+			CalendarGridView.SelectedIndex = -1;
+
+			// 시스템 메세지 초기 설정
+			// 처음부터 fade out 설정하도록
+			// 설정하는 방법을 못찾아서 임시 방편
+			MessageClose.Begin();
 		}
 
 		#region [| 데이터 입력 |]
 		private async void DataBinding(DateTime date)
 		{
+			List<CalendarDay> dayList = new List<CalendarDay>();
 			await Task.Run(() =>
 			{
-				_dayList = CalendarCore.GetMonth(date);
+				dayList = CalendarCore.GetMonth(date);
 			});
 			List<Item> items = new List<Item>();
 			Item item = null;
 			CustomDay customDay = null;
 			int startDay = CalendarCore.FristWeekStart(date);
 			int thisMonthDays = CalendarCore.DaysByMonth(date.Year)[date.Month - 1];
-			for (int i = 0; i < _dayList.Count; i++)
+			for (int i = 0; i < dayList.Count; i++)
 			{
 				item = new Item();
 				customDay = new CustomDay();
-				customDay.Year = _dayList[i].Year;
-				customDay.Month = _dayList[i].Month;
-				customDay.Day = _dayList[i].Day;
-				customDay.Memo = _dayList[i].Memo;
-				customDay.LocalMemo = _dayList[i].LocalMemo;
+				customDay.Year = dayList[i].Year;
+				customDay.Month = dayList[i].Month;
+				customDay.Day = dayList[i].Day;
+				customDay.Memo = dayList[i].Memo;
+				customDay.LocalMemo = dayList[i].LocalMemo;
+				customDay.Timetable = dayList[i].Timetable;
 				if (i < startDay)
 				{
 					customDay.NumberColor = new SolidColorBrush(Common.GetColor("#FF7a808b"));
@@ -88,6 +96,7 @@ namespace NMS.Page
 				items.Add(item);
 			}
 			MonthData.Source = items;
+			_calendarGridViewSource = items;
 		}
 		#endregion
 
@@ -144,7 +153,7 @@ namespace NMS.Page
 		#endregion
 
 		#region [| 메모 저장 버튼 클릭 |]
-		private async void BtnMemoSave_Click(object sender, RoutedEventArgs e)
+		private async void Btn_MemoSave_Click(object sender, RoutedEventArgs e)
 		{
 			Button buttonMemoSave = sender as Button;
 			CustomDay customDay = buttonMemoSave.Tag as CustomDay;
@@ -166,18 +175,18 @@ namespace NMS.Page
 						writer.Write(localMemo.Text);
 					}
 
-					// 저장한 메모로 변경
-					TextBlock textBlock = grid.Children.OfType<TextBlock>().LastOrDefault();
-					CalendarDay calendarDay = _dayList.Find(item => item.Month.Equals(customDay.Month) && item.Day.Equals(customDay.Day));
-					textBlock.Text = string.Empty;
-					if (calendarDay.Timetable != null && calendarDay.Timetable.Count != 0)
+					// 저장한 메모로 데이터 변경
+					Item item = _calendarGridViewSource.Find(item => item.Connection[0].Month.Equals(customDay.Month) && item.Connection[0].Day.Equals(customDay.Day));
+					string googleShedule = string.Empty;
+					foreach (CalendarTimetableItem calendarTimetableItem in item.Connection[0].Timetable)
 					{
-						foreach (CalendarTimetableItem calendarTimetableItem in calendarDay.Timetable)
-						{
-							textBlock.Text += calendarTimetableItem.Summary + "\r";
-						}
+						googleShedule += calendarTimetableItem.Summary + "\r";
 					}
-					textBlock.Text += localMemo.Text;
+					customDay.LocalMemo = localMemo.Text;
+					customDay.Memo = googleShedule + localMemo.Text;
+					_calendarGridViewSource[CalendarGridView.SelectedIndex].Connection.Add(customDay);
+					_calendarGridViewSource[CalendarGridView.SelectedIndex].Connection.RemoveAt(0);
+					MonthData.Source = _calendarGridViewSource;
 
 					// 포커스 변경
 					CalendarGridView.SelectedIndex = -1;
@@ -214,39 +223,38 @@ namespace NMS.Page
 		#endregion
 
 		#region [| 상세 보기 버튼 클릭 |]
-		private void BtnOpenDetail_Click(object sender, RoutedEventArgs e)
+		private void Btn_OpenDetail_Click(object sender, RoutedEventArgs e)
 		{
 			DayDetailGrid.Visibility = Visibility.Visible;
 			Button buttonOpenDetail = sender as Button;
 			CustomDay customDay = buttonOpenDetail.Tag as CustomDay;
-			CalendarDay calendarDay = _dayList.Find(item => item.Month.Equals(customDay.Month) && item.Day.Equals(customDay.Day));
 			List<CustomTimetableItem> dataList = new List<CustomTimetableItem>();
 			CustomTimetableItem data = null;
 			string preview = string.Empty;
-			foreach (CalendarTimetableItem item in calendarDay.Timetable)
+			foreach (CalendarTimetableItem calendarTimetableItem in customDay.Timetable)
 			{
 				data = new CustomTimetableItem();
 				preview = string.Empty;
-				data.Year = item.Year;
-				data.Month = item.Month;
-				data.Day = item.Day;
-				data.StartTime = item.StartTime;
-				data.EndTime = item.EndTime;
-				preview += item.StartTime != null ? ((DateTime)item.StartTime).ToString("hh:mm") : "??:??";
+				data.Year = calendarTimetableItem.Year;
+				data.Month = calendarTimetableItem.Month;
+				data.Day = calendarTimetableItem.Day;
+				data.StartTime = calendarTimetableItem.StartTime;
+				data.EndTime = calendarTimetableItem.EndTime;
+				preview += calendarTimetableItem.StartTime != null ? ((DateTime)calendarTimetableItem.StartTime).ToString("hh:mm") : "??:??";
 				preview += " ~ ";
-				preview += item.EndTime != null ? ((DateTime)item.EndTime).ToString("hh:mm") : "??:??";
+				preview += calendarTimetableItem.EndTime != null ? ((DateTime)calendarTimetableItem.EndTime).ToString("hh:mm") : "??:??";
 				data.StarEndPreview = preview;
-				data.Description = item.Description;
-				data.Summary = item.Summary;
+				data.Description = calendarTimetableItem.Description;
+				data.Summary = calendarTimetableItem.Summary;
 				dataList.Add(data);
 			}
 			ScheduleList.ItemsSource = dataList;
-			MyLocalMemo.Text = calendarDay.LocalMemo;
+			Txtblk_MyLocalMemo.Text = customDay.LocalMemo;
 
 			// 상세보기 작업용 임시 데이터
-			_tempForDetailEvent_calendarDay = calendarDay;
+			_tempListViewData = dataList;
 			_tempForDetailEvent_targetGrid = buttonOpenDetail.Parent as Grid;
-			_tempForDetailEvent_customDay = buttonOpenDetail.Tag as CustomDay;
+			_tempForDetailEvent_customDay = customDay;
 
 			// 포커스 변경
 			TextBox localMemo = _tempForDetailEvent_targetGrid.Children.OfType<TextBox>().LastOrDefault();
@@ -258,7 +266,7 @@ namespace NMS.Page
 		#endregion
 
 		#region [| 이전달 버튼 클릭 |]
-		private void BtnBeforeMonth_Click(object sender, RoutedEventArgs e)
+		private void Btn_BeforeMonth_Click(object sender, RoutedEventArgs e)
 		{
 			DateTimeOffset date = CalendarDatePicker.Date != null ? (DateTimeOffset)CalendarDatePicker.Date : DateTimeOffset.Now;
 			CalendarDatePicker.Date = date.AddMonths(-1);
@@ -266,7 +274,7 @@ namespace NMS.Page
 		#endregion
 
 		#region [| 다음달 버튼 클릭 |]
-		private void BtnNextMonth_Click(object sender, RoutedEventArgs e)
+		private void Btn_NextMonth_Click(object sender, RoutedEventArgs e)
 		{
 			DateTimeOffset date = CalendarDatePicker.Date != null ? (DateTimeOffset)CalendarDatePicker.Date : DateTimeOffset.Now;
 			CalendarDatePicker.Date = date.AddMonths(1);
@@ -286,6 +294,8 @@ namespace NMS.Page
 		}
 		#endregion
 
+		#region [| 상세보기 |]
+
 		#region [| 상세보기 여백 클릭시 |]
 		private void DayDetailGrid_Tapped(object sender, TappedRoutedEventArgs e)
 		{
@@ -296,21 +306,23 @@ namespace NMS.Page
 		}
 		#endregion
 
+		#region [| 구글 일정 ListView 선택 변경 이벤트 |]
 		private void ScheduleList_SelectionChanged(object sender, SelectionChangedEventArgs e)
 		{
 			CustomTimetableItem item = ScheduleList.SelectedItem as CustomTimetableItem;
 			if (item != null)
 			{
-				GoogleSheduleDelete.Visibility = Visibility.Visible;
-				GoogleSheduleAddOrRetouch_Text.Text = "일정 수정";
-				GoogleSheduleAddOrRetouch_Icon.Symbol = Symbol.Repair;
-				GoogleSheduleSummary.Text = item.Summary;
-				GoogleSheduleDescription.Text = item.Description;
+				Btn_SheduleDelete.Visibility = Visibility.Visible;
+				Btn_SheduleCancel.Visibility = Visibility.Visible;
+				Txtblk_GoogleSheduleAddOrRetouch.Text = "수정";
+				SIcon_GoogleSheduleAddOrRetouch.Symbol = Symbol.Repair;
+				Txtbox_GoogleSheduleSummary.Text = item.Summary;
+				Txtbox_GoogleSheduleDescription.Text = item.Description;
 				if (item.StartTime != null && item.EndTime != null)
 				{
 					DateTime startDt = (DateTime)item.StartTime;
 					DateTime endDt = (DateTime)item.EndTime;
-					GoogleSheduleStartTime.SelectedTime = new TimeSpan(startDt.Hour,startDt.Minute,0);
+					GoogleSheduleStartTime.SelectedTime = new TimeSpan(startDt.Hour, startDt.Minute, 0);
 					GoogleSheduleEndTime.SelectedTime = new TimeSpan(endDt.Hour, endDt.Minute, 0);
 				}
 				else
@@ -321,11 +333,175 @@ namespace NMS.Page
 			}
 			else
 			{
-				GoogleSheduleDelete.Visibility = Visibility.Collapsed;
-				GoogleSheduleAddOrRetouch_Text.Text = "일정 추가";
-				GoogleSheduleAddOrRetouch_Icon.Symbol = Symbol.Add;
+				Txtbox_GoogleSheduleSummary.Text = string.Empty;
+				Txtbox_GoogleSheduleDescription.Text = string.Empty;
+				GoogleSheduleStartTime.SelectedTime = null;
+				GoogleSheduleEndTime.SelectedTime = null;
+				Btn_SheduleDelete.Visibility = Visibility.Collapsed;
+				Btn_SheduleCancel.Visibility = Visibility.Collapsed;
+				Txtblk_GoogleSheduleAddOrRetouch.Text = "추가";
+				SIcon_GoogleSheduleAddOrRetouch.Symbol = Symbol.Add;
 			}
 		}
+		#endregion
+
+		#region [| 메모 삭제 클릭 |]
+		private async void Btn_MyLocalMemoDelete_Click(object sender, RoutedEventArgs e)
+		{
+			CustomDay customDay = _tempForDetailEvent_targetGrid.Children.OfType<Button>().FirstOrDefault().Tag as CustomDay;
+			int itemIndex = CalendarGridView.IndexFromContainer(CalendarGridView.ContainerFromItem(customDay));
+			try
+			{
+				// dialog 생성
+				ContentDialog dialog = new ContentDialog
+				{
+					Title = "알림",
+					Content = "삭제하시겠습니까?",
+					PrimaryButtonText = "확인",
+					CloseButtonText = "취소"
+				};
+
+				dialog.XamlRoot = this.MyPanel.XamlRoot;
+
+				ContentDialogResult result = await dialog.ShowAsync();
+
+				if (result == ContentDialogResult.Primary)
+				{
+					if (customDay != null)
+					{
+						// 파일 저장
+						string path = "C:\\MyCalendarAssets\\localMemo\\" + customDay.Year + "\\" + customDay.Month;
+						DirectoryInfo di = new DirectoryInfo(path);
+						if (di.Exists == false)
+						{
+							di.Create();
+						}
+						using (StreamWriter writer = new StreamWriter(path + "\\" + customDay.Day + ".txt"))
+						{
+							writer.Write(string.Empty);
+						}
+
+						// 저장한 메모로 데이터 변경
+						Item item = _calendarGridViewSource.Find(item => item.Connection[0].Month.Equals(customDay.Month) && item.Connection[0].Day.Equals(customDay.Day));
+						string googleShedule = string.Empty;
+						foreach (CalendarTimetableItem calendarTimetableItem in item.Connection[0].Timetable)
+						{
+							googleShedule += calendarTimetableItem.Summary + "\r";
+						}
+						customDay.LocalMemo = string.Empty;
+						customDay.Memo = googleShedule;
+						_calendarGridViewSource[itemIndex].Connection.Add(customDay);
+						_calendarGridViewSource[itemIndex].Connection.RemoveAt(0);
+						MonthData.Source = _calendarGridViewSource;
+						Txtblk_MyLocalMemo.Text = string.Empty;
+					}
+				}
+			}
+			catch
+			{
+				ContentDialog errorDataDialog = new ContentDialog
+				{
+					Title = "오류",
+					Content = "메모를 삭제하다 오류 발생",
+					CloseButtonText = "확인"
+				};
+
+				// 따로 오픈할 경로를 지정해주지 않으면 프로퍼티 오류 발생
+				errorDataDialog.XamlRoot = this.MyPanel.XamlRoot;
+
+				ContentDialogResult result = await errorDataDialog.ShowAsync();
+			}
+		}
+		#endregion
+
+		#region [| 메모 저장 클릭 |]
+		private async void Btn_MyLocalMemoSave_Click(object sender, RoutedEventArgs e)
+		{
+			CustomDay customDay = _tempForDetailEvent_targetGrid.Children.OfType<Button>().FirstOrDefault().Tag as CustomDay;
+			int itemIndex = CalendarGridView.IndexFromContainer(CalendarGridView.ContainerFromItem(customDay));
+			try
+			{
+				if (customDay != null && !string.IsNullOrEmpty(Txtblk_MyLocalMemo.Text))
+				{
+					// 파일 저장
+					string path = "C:\\MyCalendarAssets\\localMemo\\" + customDay.Year + "\\" + customDay.Month;
+					DirectoryInfo di = new DirectoryInfo(path);
+					if (di.Exists == false)
+					{
+						di.Create();
+					}
+					using (StreamWriter writer = new StreamWriter(path + "\\" + customDay.Day + ".txt"))
+					{
+						writer.Write(Txtblk_MyLocalMemo.Text);
+					}
+
+					// 저장한 메모로 데이터 변경
+					Item item = _calendarGridViewSource.Find(item => item.Connection[0].Month.Equals(customDay.Month) && item.Connection[0].Day.Equals(customDay.Day));
+					string googleShedule = string.Empty;
+					foreach (CalendarTimetableItem calendarTimetableItem in item.Connection[0].Timetable)
+					{
+						googleShedule += calendarTimetableItem.Summary + "\r";
+					}
+					customDay.LocalMemo = Txtblk_MyLocalMemo.Text;
+					customDay.Memo = googleShedule + Txtblk_MyLocalMemo.Text;
+					_calendarGridViewSource[itemIndex].Connection.Add(customDay);
+					_calendarGridViewSource[itemIndex].Connection.RemoveAt(0);
+					MonthData.Source = _calendarGridViewSource;
+
+					SystemMessage("저장 완료", new SolidColorBrush(Common.GetColor("#80128b44")));
+				}
+			}
+			catch
+			{
+				ContentDialog errorDataDialog = new ContentDialog
+				{
+					Title = "오류",
+					Content = "메모를 저장하다 오류 발생",
+					CloseButtonText = "확인"
+				};
+
+				// 따로 오픈할 경로를 지정해주지 않으면 프로퍼티 오류 발생
+				errorDataDialog.XamlRoot = this.MyPanel.XamlRoot;
+
+				ContentDialogResult result = await errorDataDialog.ShowAsync();
+			}
+		}
+		#endregion
+
+		#region [| 취소 클릭 |]
+		private void Btn_SheduleCancel_Click(object sender, RoutedEventArgs e)
+		{
+			ScheduleList.ItemsSource = new List<CustomTimetableItem>(_tempListViewData);
+		}
+		#endregion
+
+		private void Btn_SheduleAddOrRetouch_Click(object sender, RoutedEventArgs e)
+		{
+			//if ()
+			//{
+
+			//}
+		}
+
+		#region [| 상세보기 닫기 클릭 |]
+		private void Btn_DetailClose_Click(object sender, RoutedEventArgs e)
+		{
+			DayDetailGrid.Visibility = Visibility.Collapsed;
+		}
+		#endregion
+
+		#endregion
+
+		private void SystemMessage(string message, SolidColorBrush background)
+		{
+			SystemMessageGrid.Background = background;
+			Txtblk_SystemMessage.Text = message;
+			SystemMessageGrid.Visibility = Visibility.Visible;
+			MessageOpen.Begin();
+			MessageOpen.Completed += (_,_) => MessageClose.Begin();
+			MessageClose.Completed += (_,_) => SystemMessageGrid.Visibility = Visibility.Collapsed;
+		}
+
 		private SolidColorBrush GetColorText(int count)
 		{
 			int num = count % 7;
@@ -339,7 +515,6 @@ namespace NMS.Page
 					return new SolidColorBrush(Common.GetColor("#FF000f1a"));
 			}
 		}
-
 	}
 
 	public class Item
@@ -358,6 +533,7 @@ namespace NMS.Page
 		public int Day { get; set; }
 		public string Memo { get; set; }
 		public string LocalMemo { get; set; }
+		public List<CalendarTimetableItem> Timetable { get; set; }
 		public Brush NumberColor { get; set; }
 		public Brush FontColor { get; set; }
 	}

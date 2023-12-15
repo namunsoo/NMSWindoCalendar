@@ -176,7 +176,7 @@ namespace NMS.Helpers
 			return days;
 		}
 
-		public static List<CalendarTimetableItem> GetGoogleCalendarData(DateTime startDate, DateTime endDate)
+		public static CalendarService GetGoogleApiService()
 		{
 			string[] Scopes = { CalendarService.Scope.Calendar };
 			string ApplicationName = "MyCalendar";
@@ -200,6 +200,13 @@ namespace NMS.Helpers
 				HttpClientInitializer = credential,
 				ApplicationName = ApplicationName,
 			});
+
+			return service;
+		}
+
+		public static List<CalendarTimetableItem> GetGoogleCalendarData(DateTime startDate, DateTime endDate)
+		{
+			var service = GetGoogleApiService();
 
 			// Define the time range in the request
 			EventsResource.ListRequest request = service.Events.List("primary");
@@ -232,6 +239,32 @@ namespace NMS.Helpers
 				}
 			}
 			return myItems;
+		}
+
+		public static void CreateGoogleCalendarData(string summary, string description, DateTime start, DateTime end)
+		{
+			var service = GetGoogleApiService();
+
+			// Create a new event
+			Event newEvent = new Event()
+			{
+				Summary = "summary",
+				Description = "description",
+				Start = new EventDateTime()
+				{
+					DateTime = start,
+					TimeZone = "Asia/Seoul",
+				},
+				End = new EventDateTime()
+				{
+					DateTime = end,
+					TimeZone = "Asia/Seoul",
+				}
+			};
+
+			// Insert the new event into the calendar
+			EventsResource.InsertRequest request = service.Events.Insert(newEvent, "primary");
+			Event createdEvent = request.Execute();
 		}
 	}
 }

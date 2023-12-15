@@ -101,7 +101,7 @@ namespace NMS
 			PageFrame.Navigate(typeof(CalendarMonth));
 		}
 
-		private void BtnClose_Click(object sender, RoutedEventArgs e)
+		private void Btn_Close_Click(object sender, RoutedEventArgs e)
 		{
 			App.m_window.Close();
 		}
