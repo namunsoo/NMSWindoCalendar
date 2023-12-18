@@ -17,6 +17,21 @@ namespace NMS.Helpers
 {
     class CalendarCore
 	{
+		private static string _applicationName;
+		private static string _myEmail;
+		CalendarCore()
+		{
+			FileInfo fi = new FileInfo("C:\\MyCalendarAssets\\apiData.txt");
+			if (fi.Exists)
+			{
+				using (StreamReader reader = new StreamReader("C:\\MyCalendarAssets\\apiData.txt"))
+				{
+					string[] data = reader.ReadToEnd().Split(',');
+					_applicationName = data[0];
+					_myEmail = data[1];
+				}
+			}
+		}
 		/// <summary>
 		/// 달력 앞뒤 일부 포함해서 가져오기
 		/// </summary>
@@ -39,6 +54,7 @@ namespace NMS.Helpers
 
 			List<CalendarTimetableItem> googleCalendar = GetGoogleCalendarData(beforMonth, nextMonth);
 			//List<CalendarTimetableItem> googleCalendar = new List<CalendarTimetableItem>();
+
 			FileInfo fi = null;
 			string filePath = string.Empty;
 			string localMemo = string.Empty;
@@ -176,10 +192,14 @@ namespace NMS.Helpers
 			return days;
 		}
 
+		/// <summary>
+		/// 구글 캘린더 api 연결
+		/// </summary>
+		/// <returns></returns>
 		public static CalendarService GetGoogleApiService()
 		{
 			string[] Scopes = { CalendarService.Scope.Calendar };
-			string ApplicationName = "MyCalendar";
+			string ApplicationName = _applicationName;
 			UserCredential credential;
 
 			using (var stream =
@@ -204,6 +224,13 @@ namespace NMS.Helpers
 			return service;
 		}
 
+
+		/// <summary>
+		/// 구글 일정 가져오기
+		/// </summary>
+		/// <param name="startDate">검색 시작 날짜</param>
+		/// <param name="endDate">검색 마직막 날짜</param>
+		/// <returns></returns>
 		public static List<CalendarTimetableItem> GetGoogleCalendarData(DateTime startDate, DateTime endDate)
 		{
 			var service = GetGoogleApiService();
@@ -227,6 +254,7 @@ namespace NMS.Helpers
 					if (eventItem.Start.DateTime != null && eventItem.End.DateTime != null)
 					{
 						item = new CalendarTimetableItem();
+						item.Id = eventItem.Id;
 						item.Year = eventItem.Start.DateTime.Value.Year;
 						item.Month = eventItem.Start.DateTime.Value.Month;
 						item.Day = eventItem.Start.DateTime.Value.Day;
@@ -241,6 +269,13 @@ namespace NMS.Helpers
 			return myItems;
 		}
 
+		/// <summary>
+		/// 구글 일정 새성
+		/// </summary>
+		/// <param name="summary">제목</param>
+		/// <param name="description">설명</param>
+		/// <param name="start">시작 시간</param>
+		/// <param name="end">끝나는 시간</param>
 		public static void CreateGoogleCalendarData(string summary, string description, DateTime start, DateTime end)
 		{
 			var service = GetGoogleApiService();
@@ -248,23 +283,67 @@ namespace NMS.Helpers
 			// Create a new event
 			Event newEvent = new Event()
 			{
-				Summary = "summary",
-				Description = "description",
+				Summary = summary,
+				Description = description,
 				Start = new EventDateTime()
 				{
 					DateTime = start,
-					TimeZone = "Asia/Seoul",
+					TimeZone = "Asia/Seoul"
 				},
 				End = new EventDateTime()
 				{
 					DateTime = end,
-					TimeZone = "Asia/Seoul",
+					TimeZone = "Asia/Seoul"
+				},
+				Attendees = new List<EventAttendee>()
+				{
+					new EventAttendee() { Email = _myEmail }
 				}
 			};
 
 			// Insert the new event into the calendar
 			EventsResource.InsertRequest request = service.Events.Insert(newEvent, "primary");
 			Event createdEvent = request.Execute();
+		}
+
+		/// <summary>
+		/// 구글 일정 수정
+		/// </summary>
+		/// <param name="id">일정 아이디</param>
+		/// <param name="summary">제목</param>
+		/// <param name="description">설명</param>
+		/// <param name="start">시작 시간</param>
+		/// <param name="end">끝나는 시간</param>
+		public static void UpdateGoogleCalendarData(string id, string summary, string description, DateTime start, DateTime end)
+		{
+			var service = GetGoogleApiService();
+
+			// Fetch the existing event
+			EventsResource.GetRequest getRequest = service.Events.Get("primary", id);
+			Event existingEvent = getRequest.Execute();
+
+			// Update the event details
+			existingEvent.Summary = summary;
+			existingEvent.Description = description;
+			existingEvent.Start.DateTime = start;
+			existingEvent.End.DateTime = end;
+
+			// Update the event in the calendar
+			EventsResource.UpdateRequest updateRequest = service.Events.Update(existingEvent, "primary", id);
+			Event updatedEvent = updateRequest.Execute();
+		}
+
+		/// <summary>
+		/// 구글 일정 삭제
+		/// </summary>
+		/// <param name="id">일정 아이디</param>
+		public static void DeleteGoogleCalendarData(string id)
+		{
+			var service = GetGoogleApiService();
+
+			// Delete the event
+			EventsResource.DeleteRequest deleteRequest = service.Events.Delete("primary", id);
+			deleteRequest.Execute();
 		}
 	}
 }

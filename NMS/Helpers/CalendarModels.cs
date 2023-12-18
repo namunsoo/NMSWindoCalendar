@@ -18,6 +18,7 @@ namespace NMS.Helpers
 
 	public class CalendarTimetableItem
 	{
+		public string Id { get; set; }
 		public int Year { get; set; }
 		public int Month { get; set; }
 		public int Day { get; set; }

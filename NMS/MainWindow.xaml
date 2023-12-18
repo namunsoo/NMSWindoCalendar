@@ -11,10 +11,48 @@
     <Window.SystemBackdrop>
         <winuiex:TransparentTintBackdrop/>
     </Window.SystemBackdrop>
-    <Grid Name="Main" >
+    <Grid Name="Main" Background="#00000000">
         <Frame x:Name="PageFrame"/>
-        <Button Background="Transparent" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="5" Click="Btn_Close_Click">
+        <Button Background="Transparent" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="5" Padding="5" Click="Btn_Close_Click">
             <FontIcon Glyph="&#xE711;" />
+        </Button>
+        <Button Background="Transparent" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="5,5,45,5" Padding="5" >
+            <FontIcon Glyph="&#xE713;" />
+            <Button.Flyout>
+                <Flyout>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="180" />
+                            <ColumnDefinition Width="180" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Column="0" Grid.Row="0" Text="흐림 효과" TextAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <ToggleSwitch x:Name="TogSw_Blur" Grid.Column="1" Grid.Row="0" Toggled="TogSw_Blur_Toggled"/>
+                        <NumberBox x:Name="NBox_WindowWith" Grid.Column="0" Grid.Row="1" Margin="0,10,0,0" Header="달력 넓이" Value="800" SpinButtonPlacementMode="Compact" 
+                            SmallChange="10" LargeChange="100" Minimum="800" ValueChanged="SizeAndPoint_ValueChanged"/>
+                        <NumberBox x:Name="NBox_WindowHeight" Grid.Column="1" Grid.Row="1" Margin="0,10,0,0" Header="달력 높이" Value="750" SpinButtonPlacementMode="Compact"
+                            SmallChange="10" LargeChange="100" Minimum="750" ValueChanged="SizeAndPoint_ValueChanged"/>
+                        <NumberBox x:Name="NBox_OpenPointX" Grid.Column="0" Grid.Row="2" Margin="0,10,0,0" Header="달력 X 위치" Value="0" SpinButtonPlacementMode="Compact"
+                            SmallChange="10" LargeChange="100" ValueChanged="SizeAndPoint_ValueChanged"/>
+                        <NumberBox x:Name="NBox_OpenPointY" Grid.Column="1" Grid.Row="2" Margin="0,10,0,0" Header="달력 Y 위치" Value="0" SpinButtonPlacementMode="Compact"
+                            SmallChange="10" LargeChange="100" ValueChanged="SizeAndPoint_ValueChanged"/>
+                        <TextBlock Grid.Column="0" Grid.Row="3" Margin="0,20,0,0" Text="배경 색" TextAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <ColorPicker x:Name="CP_BackgroundColor" Grid.ColumnSpan="2" Grid.Column="0" Grid.Row="4"
+                            ColorChanged="CP_BackgroundColor_ColorChanged" Color="#ffffffff"
+                            ColorSpectrumShape="Box" IsMoreButtonVisible="False" IsColorSliderVisible="True" IsColorChannelTextInputVisible="False"
+                            IsHexInputVisible="True" IsAlphaEnabled="True" IsAlphaSliderVisible="True" IsAlphaTextInputVisible="False" />
+                        <Button x:Name="Btn_OptionSave" Grid.Column="1" Grid.Row="5" Content="옵션 저장" 
+                                HorizontalAlignment="Right" VerticalAlignment="Center" Click="Btn_OptionSave_Click"/>
+                    </Grid>
+                </Flyout>
+            </Button.Flyout>
         </Button>
     </Grid>
 </Window>

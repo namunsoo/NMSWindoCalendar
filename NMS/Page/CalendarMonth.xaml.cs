@@ -20,6 +20,7 @@ using Windows.System;
 using Windows.UI.Core;
 using System.Threading.Tasks;
 using System.Collections;
+using WinUIEx.Messaging;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -47,9 +48,6 @@ namespace NMS.Page
 			// 데이터 입력
 			DataBinding(DateTime.Today);
 
-			// gridview 초기값 삭제용
-			CalendarGridView.SelectedIndex = -1;
-
 			// 시스템 메세지 초기 설정
 			// 처음부터 fade out 설정하도록
 			// 설정하는 방법을 못찾아서 임시 방편
@@ -59,44 +57,62 @@ namespace NMS.Page
 		#region [| 데이터 입력 |]
 		private async void DataBinding(DateTime date)
 		{
-			List<CalendarDay> dayList = new List<CalendarDay>();
-			await Task.Run(() =>
-			{
-				dayList = CalendarCore.GetMonth(date);
-			});
-			List<Item> items = new List<Item>();
-			Item item = null;
-			CustomDay customDay = null;
-			int startDay = CalendarCore.FristWeekStart(date);
-			int thisMonthDays = CalendarCore.DaysByMonth(date.Year)[date.Month - 1];
-			for (int i = 0; i < dayList.Count; i++)
-			{
-				item = new Item();
-				customDay = new CustomDay();
-				customDay.Year = dayList[i].Year;
-				customDay.Month = dayList[i].Month;
-				customDay.Day = dayList[i].Day;
-				customDay.Memo = dayList[i].Memo;
-				customDay.LocalMemo = dayList[i].LocalMemo;
-				customDay.Timetable = dayList[i].Timetable;
-				if (i < startDay)
+			try { 
+				List<CalendarDay> dayList = new List<CalendarDay>();
+				await Task.Run(() =>
 				{
-					customDay.NumberColor = new SolidColorBrush(Common.GetColor("#FF7a808b"));
-					customDay.FontColor = new SolidColorBrush(Common.GetColor("#FF7a808b"));
-				} else if (i < (startDay + thisMonthDays))
+					dayList = CalendarCore.GetMonth(date);
+				});
+				List<Item> items = new List<Item>();
+				Item item = null;
+				CustomDay customDay = null;
+				int startDay = CalendarCore.FristWeekStart(date);
+				int thisMonthDays = CalendarCore.DaysByMonth(date.Year)[date.Month - 1];
+				for (int i = 0; i < dayList.Count; i++)
 				{
-					customDay.NumberColor = GetColorText(i);
-					customDay.FontColor = new SolidColorBrush(Common.GetColor("#FF000f1a"));
-				} else
-				{
-					customDay.NumberColor = new SolidColorBrush(Common.GetColor("#FF7a808b"));
-					customDay.FontColor = new SolidColorBrush(Common.GetColor("#FF7a808b"));
+					item = new Item();
+					customDay = new CustomDay();
+					customDay.Year = dayList[i].Year;
+					customDay.Month = dayList[i].Month;
+					customDay.Day = dayList[i].Day;
+					customDay.Memo = dayList[i].Memo;
+					customDay.LocalMemo = dayList[i].LocalMemo;
+					customDay.Timetable = ToCustomTimetableItem(dayList[i].Timetable);
+					if (i < startDay)
+					{
+						customDay.NumberColor = new SolidColorBrush(Common.GetColor("#FF7a808b"));
+						customDay.FontColor = new SolidColorBrush(Common.GetColor("#FF7a808b"));
+					} else if (i < (startDay + thisMonthDays))
+					{
+						customDay.NumberColor = GetColorText(i);
+						customDay.FontColor = new SolidColorBrush(Common.GetColor("#FF000f1a"));
+					} else
+					{
+						customDay.NumberColor = new SolidColorBrush(Common.GetColor("#FF7a808b"));
+						customDay.FontColor = new SolidColorBrush(Common.GetColor("#FF7a808b"));
+					}
+					item.Connection.Add(customDay);
+					items.Add(item);
 				}
-				item.Connection.Add(customDay);
-				items.Add(item);
+				MonthData.Source = items;
+				_calendarGridViewSource = items;
+
+				// gridview 기본석택 없애기
+				CalendarGridView.SelectedIndex = -1;
 			}
-			MonthData.Source = items;
-			_calendarGridViewSource = items;
+			catch {
+				ContentDialog errorDataDialog = new ContentDialog
+				{
+					Title = "오류",
+					Content = "달력 정보를 가져오다 오류가 발생했습니다.",
+					CloseButtonText = "확인"
+				};
+
+				// 따로 오픈할 경로를 지정해주지 않으면 프로퍼티 오류 발생
+				errorDataDialog.XamlRoot = this.MyPanel.XamlRoot;
+
+				ContentDialogResult result = await errorDataDialog.ShowAsync();
+			}
 		}
 		#endregion
 
@@ -118,17 +134,21 @@ namespace NMS.Page
 			{
 				TextBox beforeTextBox = beforeSelectedGrid.Children.OfType<TextBox>().LastOrDefault();
 				beforeTextBox.Visibility = Visibility.Collapsed;
+				Button buttonClose = beforeSelectedGrid.Children.OfType<Button>().ToList()[1];
 				Button buttonSave = beforeSelectedGrid.Children.OfType<Button>().LastOrDefault();
+				buttonClose.Visibility = Visibility.Collapsed;
 				buttonSave.Visibility = Visibility.Collapsed;
 			}
 			if (_clickedItem != null)
 			{
 				Grid grid = _clickedItem.ContentTemplateRoot as Grid;
 				TextBox textBox = grid.Children.OfType<TextBox>().LastOrDefault();
+				Button buttonClose = _grid.Children.OfType<Button>().ToList()[1];
 				Button buttonSave = _grid.Children.OfType<Button>().LastOrDefault();
 				textBox.Visibility = Visibility.Visible;
-				buttonSave.Visibility = Visibility.Visible;
 				textBox.Focus(FocusState.Programmatic);
+				buttonClose.Visibility = Visibility.Visible;
+				buttonSave.Visibility = Visibility.Visible;
 				beforeSelectedGrid = grid;
 			}
 		}
@@ -149,6 +169,13 @@ namespace NMS.Page
 			_buttonDetail = _grid.Children.OfType<Button>().FirstOrDefault();
 			_buttonDetail.Visibility = Visibility.Collapsed;
 			_grid.Background = new SolidColorBrush(Common.GetColor("#00000000"));
+		}
+		#endregion
+
+		#region [| 메모 닫기 버튼 |]
+		private void Btn_MemoClose_Click(object sender, RoutedEventArgs e)
+		{
+			CalendarGridView.SelectedIndex = -1;
 		}
 		#endregion
 
@@ -176,9 +203,8 @@ namespace NMS.Page
 					}
 
 					// 저장한 메모로 데이터 변경
-					Item item = _calendarGridViewSource.Find(item => item.Connection[0].Month.Equals(customDay.Month) && item.Connection[0].Day.Equals(customDay.Day));
 					string googleShedule = string.Empty;
-					foreach (CalendarTimetableItem calendarTimetableItem in item.Connection[0].Timetable)
+					foreach (CustomTimetableItem calendarTimetableItem in customDay.Timetable)
 					{
 						googleShedule += calendarTimetableItem.Summary + "\r";
 					}
@@ -228,31 +254,11 @@ namespace NMS.Page
 			DayDetailGrid.Visibility = Visibility.Visible;
 			Button buttonOpenDetail = sender as Button;
 			CustomDay customDay = buttonOpenDetail.Tag as CustomDay;
-			List<CustomTimetableItem> dataList = new List<CustomTimetableItem>();
-			CustomTimetableItem data = null;
-			string preview = string.Empty;
-			foreach (CalendarTimetableItem calendarTimetableItem in customDay.Timetable)
-			{
-				data = new CustomTimetableItem();
-				preview = string.Empty;
-				data.Year = calendarTimetableItem.Year;
-				data.Month = calendarTimetableItem.Month;
-				data.Day = calendarTimetableItem.Day;
-				data.StartTime = calendarTimetableItem.StartTime;
-				data.EndTime = calendarTimetableItem.EndTime;
-				preview += calendarTimetableItem.StartTime != null ? ((DateTime)calendarTimetableItem.StartTime).ToString("hh:mm") : "??:??";
-				preview += " ~ ";
-				preview += calendarTimetableItem.EndTime != null ? ((DateTime)calendarTimetableItem.EndTime).ToString("hh:mm") : "??:??";
-				data.StarEndPreview = preview;
-				data.Description = calendarTimetableItem.Description;
-				data.Summary = calendarTimetableItem.Summary;
-				dataList.Add(data);
-			}
-			ScheduleList.ItemsSource = dataList;
+			ScheduleList.ItemsSource = customDay.Timetable;
 			Txtblk_MyLocalMemo.Text = customDay.LocalMemo;
 
 			// 상세보기 작업용 임시 데이터
-			_tempListViewData = dataList;
+			_tempListViewData = customDay.Timetable;
 			_tempForDetailEvent_targetGrid = buttonOpenDetail.Parent as Grid;
 			_tempForDetailEvent_customDay = customDay;
 
@@ -294,7 +300,9 @@ namespace NMS.Page
 		}
 		#endregion
 
-		#region [| 상세보기 |]
+
+
+		#region [| ==상세보기== |]
 
 		#region [| 상세보기 여백 클릭시 |]
 		private void DayDetailGrid_Tapped(object sender, TappedRoutedEventArgs e)
@@ -316,6 +324,8 @@ namespace NMS.Page
 				Btn_SheduleCancel.Visibility = Visibility.Visible;
 				Txtblk_GoogleSheduleAddOrRetouch.Text = "수정";
 				SIcon_GoogleSheduleAddOrRetouch.Symbol = Symbol.Repair;
+				Btn_SheduleAddOrRetouch.Tag = item;
+				Btn_SheduleDelete.Tag = item;
 				Txtbox_GoogleSheduleSummary.Text = item.Summary;
 				Txtbox_GoogleSheduleDescription.Text = item.Description;
 				if (item.StartTime != null && item.EndTime != null)
@@ -341,6 +351,8 @@ namespace NMS.Page
 				Btn_SheduleCancel.Visibility = Visibility.Collapsed;
 				Txtblk_GoogleSheduleAddOrRetouch.Text = "추가";
 				SIcon_GoogleSheduleAddOrRetouch.Symbol = Symbol.Add;
+				Btn_SheduleAddOrRetouch.Tag = null;
+				Btn_SheduleDelete.Tag = null;
 			}
 		}
 		#endregion
@@ -382,9 +394,8 @@ namespace NMS.Page
 						}
 
 						// 저장한 메모로 데이터 변경
-						Item item = _calendarGridViewSource.Find(item => item.Connection[0].Month.Equals(customDay.Month) && item.Connection[0].Day.Equals(customDay.Day));
 						string googleShedule = string.Empty;
-						foreach (CalendarTimetableItem calendarTimetableItem in item.Connection[0].Timetable)
+						foreach (CustomTimetableItem calendarTimetableItem in customDay.Timetable)
 						{
 							googleShedule += calendarTimetableItem.Summary + "\r";
 						}
@@ -436,9 +447,8 @@ namespace NMS.Page
 					}
 
 					// 저장한 메모로 데이터 변경
-					Item item = _calendarGridViewSource.Find(item => item.Connection[0].Month.Equals(customDay.Month) && item.Connection[0].Day.Equals(customDay.Day));
 					string googleShedule = string.Empty;
-					foreach (CalendarTimetableItem calendarTimetableItem in item.Connection[0].Timetable)
+					foreach (CustomTimetableItem calendarTimetableItem in customDay.Timetable)
 					{
 						googleShedule += calendarTimetableItem.Summary + "\r";
 					}
@@ -475,13 +485,153 @@ namespace NMS.Page
 		}
 		#endregion
 
+		#region [| 구글 일정 삭제 클릭 |]
+		private async void Btn_SheduleDelete_Click(object sender, RoutedEventArgs e)
+		{
+			// dialog 생성
+			ContentDialog dialog = new ContentDialog
+			{
+				Title = "알림",
+				Content = "삭제하시겠습니까?",
+				PrimaryButtonText = "확인",
+				CloseButtonText = "취소"
+			};
+
+			dialog.XamlRoot = this.MyPanel.XamlRoot;
+
+			ContentDialogResult result = await dialog.ShowAsync();
+
+			if (result == ContentDialogResult.Primary && Btn_SheduleDelete.Tag != null)
+			{
+				CustomTimetableItem targetItem = Btn_SheduleDelete.Tag as CustomTimetableItem;
+				CalendarCore.DeleteGoogleCalendarData(targetItem.Id);
+				DateTime date = new DateTime(targetItem.Year, targetItem.Month, targetItem.Day);
+
+				// 구글 일정 (ListView) 데이터 업데이트
+				List<CalendarTimetableItem> newGoogleCalendar = CalendarCore.GetGoogleCalendarData(date, date.AddDays(1));
+				List<CustomTimetableItem> dataList = ToCustomTimetableItem(newGoogleCalendar);
+				ScheduleList.ItemsSource = dataList;
+				_tempListViewData = dataList;
+
+				// 달력 데이터 수정
+				CustomDay customDay = _tempForDetailEvent_targetGrid.Children.OfType<Button>().FirstOrDefault().Tag as CustomDay;
+				int itemIndex = CalendarGridView.IndexFromContainer(CalendarGridView.ContainerFromItem(customDay));
+				string googleShedule = string.Empty;
+				foreach (CustomTimetableItem calendarTimetableItem in dataList)
+				{
+					googleShedule += calendarTimetableItem.Summary + "\r";
+				}
+				customDay.Memo = googleShedule + customDay.LocalMemo;
+				customDay.Timetable = dataList;
+				_calendarGridViewSource[itemIndex].Connection.Add(customDay);
+				_calendarGridViewSource[itemIndex].Connection.RemoveAt(0);
+				MonthData.Source = _calendarGridViewSource;
+
+				// 상세보기 변경
+				Txtbox_GoogleSheduleSummary.Text = string.Empty;
+				Txtbox_GoogleSheduleDescription.Text = string.Empty;
+				GoogleSheduleStartTime.SelectedTime = null;
+				GoogleSheduleEndTime.SelectedTime = null;
+				Btn_SheduleDelete.Visibility = Visibility.Collapsed;
+				Btn_SheduleCancel.Visibility = Visibility.Collapsed;
+				Txtblk_GoogleSheduleAddOrRetouch.Text = "추가";
+				SIcon_GoogleSheduleAddOrRetouch.Symbol = Symbol.Add;
+				Btn_SheduleAddOrRetouch.Tag = null;
+				Btn_SheduleDelete.Tag = null;
+
+				SystemMessage("일정 삭제 완료", new SolidColorBrush(Common.GetColor("#80128b44")));
+			}
+		}
+		#endregion
+
+		#region [| 구글 일정 수정 및 추가 클릭 |]
 		private void Btn_SheduleAddOrRetouch_Click(object sender, RoutedEventArgs e)
 		{
-			//if ()
-			//{
+			if (string.IsNullOrEmpty(Txtbox_GoogleSheduleSummary.Text))
+			{
+				SystemMessage("제목을 입력하세요", new SolidColorBrush(Common.GetColor("#80c50500")));
+				Txtbox_GoogleSheduleSummary.Focus(FocusState.Programmatic);
+			} else if (GoogleSheduleStartTime.SelectedTime == null)
+			{
+				SystemMessage("시작 시간을 선택하세요", new SolidColorBrush(Common.GetColor("#80c50500")));
+			} else if (GoogleSheduleEndTime.SelectedTime == null)
+			{
+				SystemMessage("종료 시간을 선택하세요", new SolidColorBrush(Common.GetColor("#80c50500")));
+			} else if (_tempForDetailEvent_customDay != null)
+			{
+				DateTime date = new DateTime(_tempForDetailEvent_customDay.Year,
+					_tempForDetailEvent_customDay.Month,
+					_tempForDetailEvent_customDay.Day);
+				DateTime start = new DateTime(date.Year,
+					date.Month,
+					date.Day,
+					((TimeSpan)GoogleSheduleStartTime.SelectedTime).Hours,
+					((TimeSpan)GoogleSheduleStartTime.SelectedTime).Minutes,
+					((TimeSpan)GoogleSheduleStartTime.SelectedTime).Seconds
+					);
+				DateTime nextDate = TimeSpan.Compare((TimeSpan)GoogleSheduleEndTime.SelectedTime, (TimeSpan)GoogleSheduleStartTime.SelectedTime) == -1 ? date.AddDays(1) : date;
+				DateTime end = new DateTime(nextDate.Year,
+					nextDate.Month,
+					nextDate.Day,
+					((TimeSpan)GoogleSheduleEndTime.SelectedTime).Hours,
+					((TimeSpan)GoogleSheduleEndTime.SelectedTime).Minutes,
+					((TimeSpan)GoogleSheduleEndTime.SelectedTime).Seconds
+					);
 
-			//}
+				string message = string.Empty;
+				if (SIcon_GoogleSheduleAddOrRetouch.Symbol == Symbol.Repair && Btn_SheduleAddOrRetouch.Tag != null)
+				{
+					CustomTimetableItem targetItem = Btn_SheduleAddOrRetouch.Tag as CustomTimetableItem;
+					CalendarCore.UpdateGoogleCalendarData(targetItem.Id, 
+						Txtbox_GoogleSheduleSummary.Text,
+						Txtbox_GoogleSheduleDescription.Text == null ? string.Empty : Txtbox_GoogleSheduleDescription.Text,
+						start, end);
+					message = "일정 수정 완료";
+				} else
+				{
+					CalendarCore.CreateGoogleCalendarData(Txtbox_GoogleSheduleSummary.Text,
+						Txtbox_GoogleSheduleDescription.Text == null ? string.Empty : Txtbox_GoogleSheduleDescription.Text,
+						start, end);
+					message = "일정 추가 완료";
+				}
+
+				// 구글 일정 (ListView) 데이터 업데이트
+				List<CalendarTimetableItem> newGoogleCalendar = CalendarCore.GetGoogleCalendarData(date, date.AddDays(1));
+				List<CustomTimetableItem> dataList = ToCustomTimetableItem(newGoogleCalendar);
+				ScheduleList.ItemsSource = dataList;
+				_tempListViewData = dataList;
+
+				// 달력 데이터 수정
+				CustomDay customDay = _tempForDetailEvent_targetGrid.Children.OfType<Button>().FirstOrDefault().Tag as CustomDay;
+				int itemIndex = CalendarGridView.IndexFromContainer(CalendarGridView.ContainerFromItem(customDay));
+				string googleShedule = string.Empty;
+				foreach (CustomTimetableItem calendarTimetableItem in dataList)
+				{
+					googleShedule += calendarTimetableItem.Summary + "\r";
+				}
+				customDay.Memo = googleShedule + customDay.LocalMemo;
+				customDay.Timetable = dataList;
+				_calendarGridViewSource[itemIndex].Connection.Add(customDay);
+				_calendarGridViewSource[itemIndex].Connection.RemoveAt(0);
+				MonthData.Source = _calendarGridViewSource;
+
+				// 상세보기 변경
+				Txtbox_GoogleSheduleSummary.Text = string.Empty;
+				Txtbox_GoogleSheduleDescription.Text = string.Empty;
+				GoogleSheduleStartTime.SelectedTime = null;
+				GoogleSheduleEndTime.SelectedTime = null;
+				Btn_SheduleDelete.Visibility = Visibility.Collapsed;
+				Btn_SheduleCancel.Visibility = Visibility.Collapsed;
+				Txtblk_GoogleSheduleAddOrRetouch.Text = "추가";
+				SIcon_GoogleSheduleAddOrRetouch.Symbol = Symbol.Add;
+				Btn_SheduleAddOrRetouch.Tag = null;
+				Btn_SheduleDelete.Tag = null;
+
+				SystemMessage(message, new SolidColorBrush(Common.GetColor("#80128b44")));
+			}
+
 		}
+		#endregion
 
 		#region [| 상세보기 닫기 클릭 |]
 		private void Btn_DetailClose_Click(object sender, RoutedEventArgs e)
@@ -492,14 +642,42 @@ namespace NMS.Page
 
 		#endregion
 
+		private List<CustomTimetableItem> ToCustomTimetableItem(List<CalendarTimetableItem> calendarTimetable)
+		{
+			List<CustomTimetableItem> dataList = new List<CustomTimetableItem>();
+			CustomTimetableItem data = null;
+			string preview = string.Empty;
+			foreach (CalendarTimetableItem calendarTimetableItem in calendarTimetable)
+			{
+				data = new CustomTimetableItem();
+				preview = string.Empty;
+				data.Id = calendarTimetableItem.Id;
+				data.Year = calendarTimetableItem.Year;
+				data.Month = calendarTimetableItem.Month;
+				data.Day = calendarTimetableItem.Day;
+				data.StartTime = calendarTimetableItem.StartTime;
+				data.EndTime = calendarTimetableItem.EndTime;
+				preview += calendarTimetableItem.StartTime != null ? ((DateTime)calendarTimetableItem.StartTime).ToString("HH:mm") : "??:??";
+				preview += " ~ ";
+				preview += ((DateTime)calendarTimetableItem.StartTime).Day == ((DateTime)calendarTimetableItem.EndTime).Day ? string.Empty : ((DateTime)calendarTimetableItem.EndTime).ToString("dd일 ");
+				preview += calendarTimetableItem.EndTime != null ? ((DateTime)calendarTimetableItem.EndTime).ToString("HH:mm") : "??:??";
+				data.StarEndPreview = preview;
+				data.Description = calendarTimetableItem.Description;
+				data.Summary = calendarTimetableItem.Summary;
+				dataList.Add(data);
+			}
+			return dataList;
+		}
+
 		private void SystemMessage(string message, SolidColorBrush background)
 		{
 			SystemMessageGrid.Background = background;
 			Txtblk_SystemMessage.Text = message;
 			SystemMessageGrid.Visibility = Visibility.Visible;
 			MessageOpen.Begin();
-			MessageOpen.Completed += (_,_) => MessageClose.Begin();
-			MessageClose.Completed += (_,_) => SystemMessageGrid.Visibility = Visibility.Collapsed;
+			MessageOpen.Completed += (_, _) => MessageDelay.Begin();
+			MessageDelay.Completed += (_, _) => MessageClose.Begin();
+			MessageClose.Completed += (_, _) => SystemMessageGrid.Visibility = Visibility.Collapsed;
 		}
 
 		private SolidColorBrush GetColorText(int count)
@@ -533,13 +711,14 @@ namespace NMS.Page
 		public int Day { get; set; }
 		public string Memo { get; set; }
 		public string LocalMemo { get; set; }
-		public List<CalendarTimetableItem> Timetable { get; set; }
+		public List<CustomTimetableItem> Timetable { get; set; }
 		public Brush NumberColor { get; set; }
 		public Brush FontColor { get; set; }
 	}
 
 	public class CustomTimetableItem
 	{
+		public string Id { get; set; }
 		public int Year { get; set; }
 		public int Month { get; set; }
 		public int Day { get; set; }
