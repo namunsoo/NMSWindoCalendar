@@ -9,7 +9,7 @@
 
   <Identity
     Name="a39cab85-485e-41f8-a9d8-60ac15bc06d6"
-    Publisher="CN=namunsoo"
+    Publisher="CN=MyAppTest"
     Version="1.0.0.0" />
 
   <mp:PhoneIdentity PhoneProductId="a39cab85-485e-41f8-a9d8-60ac15bc06d6" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>

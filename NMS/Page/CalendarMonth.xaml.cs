@@ -120,7 +120,7 @@ namespace NMS.Page
 		private void OnGridViewSizeChanged(object sender, SizeChangedEventArgs e)
 		{
 			((ItemsWrapGrid)CalendarGridView.ItemsPanelRoot).ItemWidth = e.NewSize.Width / 7;
-			((ItemsWrapGrid)CalendarGridView.ItemsPanelRoot).ItemHeight = (e.NewSize.Height - 40) / 6;
+			((ItemsWrapGrid)CalendarGridView.ItemsPanelRoot).ItemHeight = (e.NewSize.Height - 31) / 6;
 		}
 		#endregion
 

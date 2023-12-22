@@ -12,13 +12,13 @@
                               ItemsPath="Connection"/>
     </Page.Resources>
 
-    <Grid Height="750">
+    <Grid Height="auto">
         <Grid.ColumnDefinitions>
             <ColumnDefinition/>
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
-            <RowDefinition Height="45"/>
-            <RowDefinition Height="700"/>
+            <RowDefinition Height="40"/>
+            <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
         <Grid.Resources>
             <Storyboard x:Name="MessageOpen">
@@ -119,13 +119,6 @@
                             HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,0,2" Padding="0">
                             <FontIcon FontSize="15" Glyph="&#xE792;"/>
                         </Button>
-                        <!--<TextBlock >
-                            <Run Text="{Binding Year}"/>
-                            <Run Text=" "/>
-                            <Run Text="{Binding Month}"/>
-                            <Run Text=" "/>
-                            <Run Text="{Binding Day}"/>
-                        </TextBlock>-->
                     </Grid>
                 </DataTemplate>
             </GridView.ItemTemplate>
